@@ -1,0 +1,19 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  test-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pytest
+      - name: Test imports
+        run: python -c "from aihouse.core.models import AgentTask, TaskStatus; from aihouse.core.storage import Storage; from aihouse.core.scheduler import Scheduler; from aihouse.core.adapter import AgentAdapter; print('✅ 导入测试通过')"
+      - name: Test storage
+        run: python -c "from aihouse.core.storage import Storage; from aihouse.core.models import AgentTask; s=Storage('/tmp/ci_test.db'); s.save_task(AgentTask(agent_name='CI', agent_type='test', task_id='ci1', description='CI测试')); assert s.get_task('ci1') is not None; print('✅ 存储测试通过')"

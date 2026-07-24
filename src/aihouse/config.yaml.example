@@ -1,0 +1,48 @@
+# AIHouse 配置模板 v2
+project: AIHouse
+version: 2
+
+agents:
+  - name: "Claude Code"
+    type: generic
+    process_name: claude
+    enabled: true
+  - name: "Cursor"
+    type: generic
+    process_name: cursor
+    enabled: true
+  - name: "Codex CLI"
+    type: generic
+    process_name: codex
+    enabled: true
+  - name: "OpenCode"
+    type: generic
+    process_name: opencode
+    enabled: true
+  - name: "Hermes"
+    type: hermes
+    enabled: true
+
+services:
+  - name: "DeepSeek 费用"
+    type: api_cost
+    provider: deepseek
+    api_key: "${DEEPSEEK_API_KEY}"
+    daily_budget: 5
+  - name: "OpenAI 费用"
+    type: api_cost
+    provider: openai
+    api_key: "${OPENAI_API_KEY}"
+    daily_budget: 10
+
+notifications:
+  - type: pushplus
+    token: "${PUSHPLUS_TOKEN}"
+    events:
+      - task_failed
+      - agent_stuck
+
+settings:
+  poll_interval: 10
+  history_retention_days: 30
+  auto_start: false
