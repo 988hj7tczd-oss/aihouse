@@ -3,6 +3,7 @@ Hermes Agent 适配器 — 通过进程检测 + SQLite/JSON 读取会话状态
 """
 
 import json
+import platform
 import shutil
 import sqlite3
 from datetime import datetime
@@ -13,6 +14,8 @@ import psutil
 
 from aihouse.core.adapter import AgentAdapter
 from aihouse.core.models import AgentActivity, AgentStatus, AgentTask, TaskStatus
+
+IS_WINDOWS = platform.system() == "Windows"
 
 HERMES_STATE_DB = Path.home() / ".hermes" / "state.db"
 HERMES_SESSIONS_DIR = Path.home() / ".hermes" / "sessions"
@@ -40,13 +43,15 @@ class HermesAdapter(AgentAdapter):
 
     def _find_processes(self) -> List[Dict[str, Any]]:
         results: List[Dict[str, Any]] = []
-        keyword = self._process_name.lower()
+        keywords = [self._process_name.lower()]
+        if IS_WINDOWS:
+            keywords.append(f"{self._process_name.lower()}.exe")
         for proc in psutil.process_iter(["pid", "name", "cmdline", "create_time"]):
             try:
                 info = proc.info
                 name = (info.get("name") or "").lower()
                 cmdline = " ".join(info.get("cmdline") or []).lower()
-                if keyword in name or keyword in cmdline:
+                if any(kw in name or kw in cmdline for kw in keywords):
                     results.append({
                         "pid": info["pid"],
                         "create_time": info.get("create_time"),
@@ -107,19 +112,23 @@ class HermesAdapter(AgentAdapter):
         except Exception as e:
             raise RuntimeError(f"检测 Hermes 进程失败: {e}")
 
-        if not procs:
-            return AgentStatus(
-                agent_name=self.name, agent_type=self.agent_type,
-                activity=AgentActivity.NOT_RUNNING, last_seen=datetime.now(),
-                tasks_today=0, total_cost_today=0.0, pid=None,
-            )
+        pid = None
+        create_time = None
+        last_seen = datetime.now()
 
-        proc = procs[0]
-        pid = proc["pid"]
-        create_time = proc.get("create_time")
-        last_seen = datetime.fromtimestamp(create_time) if create_time else datetime.now()
+        if procs:
+            pid = procs[0]["pid"]
+            create_time = procs[0].get("create_time")
+            if create_time:
+                last_seen = datetime.fromtimestamp(create_time)
+
         current_task = self.get_current_task()
-        activity = AgentActivity.ACTIVE if current_task else AgentActivity.IDLE
+        if current_task is not None:
+            activity = AgentActivity.ACTIVE
+        elif procs:
+            activity = AgentActivity.IDLE
+        else:
+            activity = AgentActivity.NOT_RUNNING
 
         return AgentStatus(
             agent_name=self.name, agent_type=self.agent_type,
@@ -132,7 +141,6 @@ class HermesAdapter(AgentAdapter):
         if session is None:
             return None
 
-        # state.db 字段
         description = (
             session.get("system_prompt", "")
             or session.get("context", "")
@@ -140,7 +148,6 @@ class HermesAdapter(AgentAdapter):
             or "Hermes 任务"
         )
 
-        # JSON 文件字段
         if not description:
             description = (
                 session.get("description", "")

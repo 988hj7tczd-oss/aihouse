@@ -1,3 +1,4 @@
+import platform
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -7,6 +8,8 @@ import psutil
 
 from aihouse.core.adapter import AgentAdapter
 from aihouse.core.models import AgentActivity, AgentStatus, AgentTask, TaskStatus
+
+IS_WINDOWS = platform.system() == "Windows"
 
 CLINE_EXT_PATHS = [
     Path.home() / ".vscode" / "extensions",
@@ -40,13 +43,15 @@ class ClineAdapter(AgentAdapter):
 
     def _find_processes(self) -> List[Dict[str, Any]]:
         results: List[Dict[str, Any]] = []
-        keyword = self._process_name.lower()
+        keywords = [self._process_name.lower()]
+        if IS_WINDOWS:
+            keywords.append(f"{self._process_name.lower()}.exe")
         for proc in psutil.process_iter(["pid", "name", "cmdline", "create_time"]):
             try:
                 info = proc.info
                 name = (info.get("name") or "").lower()
                 cmdline = " ".join(info.get("cmdline") or []).lower()
-                if keyword in name or keyword in cmdline:
+                if any(kw in name or kw in cmdline for kw in keywords):
                     results.append({
                         "pid": info["pid"],
                         "create_time": info.get("create_time"),

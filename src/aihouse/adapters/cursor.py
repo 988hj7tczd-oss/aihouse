@@ -1,3 +1,4 @@
+import platform
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -7,6 +8,8 @@ import psutil
 
 from aihouse.core.adapter import AgentAdapter
 from aihouse.core.models import AgentActivity, AgentStatus, AgentTask, TaskStatus
+
+IS_WINDOWS = platform.system() == "Windows"
 
 
 class CursorAdapter(AgentAdapter):
@@ -30,6 +33,8 @@ class CursorAdapter(AgentAdapter):
     def _find_processes(self) -> List[Dict[str, Any]]:
         results: List[Dict[str, Any]] = []
         keywords = ["cursor"]
+        if IS_WINDOWS:
+            keywords.append("cursor.exe")
         for proc in psutil.process_iter(["pid", "name", "cmdline", "create_time"]):
             try:
                 info = proc.info
