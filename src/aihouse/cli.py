@@ -356,6 +356,31 @@ def desktop() -> None:
 
 
 @cli.command()
+def desktop_install() -> None:
+    """自动下载并安装桌面端"""
+    system = platform.system()
+    repo = "988hj7tczd-oss/aihouse"
+    version = "v0.1.0"
+
+    if system == "Darwin":
+        url = f"https://github.com/{repo}/releases/download/{version}/AIHouse_0.1.0_macos.dmg"
+        click.echo("下载 macOS 桌面版...")
+        download_path = os.path.expanduser("~/Downloads/AIHouse_0.1.0.dmg")
+        try:
+            urllib.request.urlretrieve(url, download_path)
+            click.echo(f"已下载到: {download_path}")
+            click.echo("打开 dmg 文件，将 AIHouse.app 拖到 Applications 文件夹")
+        except Exception as e:
+            click.echo(f"下载失败: {e}", err=True)
+    elif system == "Windows":
+        click.echo("Windows 桌面版编译中，稍后再试")
+    elif system == "Linux":
+        click.echo("Linux 桌面版编译中，稍后再试")
+    else:
+        click.echo(f"不支持的操作系统: {system}")
+
+
+@cli.command()
 @click.argument("agent_type", required=False)
 def diagnose(agent_type: str | None = None) -> None:
     """诊断适配器状态，排查为什么读不到 Agent 数据"""
