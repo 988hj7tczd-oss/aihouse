@@ -59,9 +59,7 @@
 ### macOS / Linux
 
 ```bash
-curl -L -o aihouse-0.1.0-py3-none-any.whl \
-  https://github.com/988hj7tczd-oss/aihouse/releases/download/v0.1.0/aihouse-0.1.0-py3-none-any.whl
-pip install aihouse-0.1.0-py3-none-any.whl
+pip install https://github.com/988hj7tczd-oss/aihouse/releases/download/v0.1.0/aihouse-0.1.0-py3-none-any.whl
 aihouse init
 aihouse start
 aihouse status
@@ -70,9 +68,7 @@ aihouse status
 ### Windows
 
 ```powershell
-curl -L -o aihouse-0.1.0-py3-none-any.whl ^
-  https://github.com/988hj7tczd-oss/aihouse/releases/download/v0.1.0/aihouse-0.1.0-py3-none-any.whl
-pip install aihouse-0.1.0-py3-none-any.whl
+pip install https://github.com/988hj7tczd-oss/aihouse/releases/download/v0.1.0/aihouse-0.1.0-py3-none-any.whl
 aihouse init
 aihouse start
 aihouse status
