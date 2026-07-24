@@ -54,56 +54,25 @@
 
 ## 📦 安装
 
-### 前置要求
+### 从 Release 安装（推荐，支持 Mac / Windows / Linux）
 
-- Python 3.9 或更高版本
-- pip（Python 包管理器）
-- Git
-- （桌面端可选）Node.js 18+ 和 Rust
-
-### macOS / Linux
+从 [GitHub Releases](https://github.com/988hj7tczd-oss/aihouse/releases) 下载最新版：
 
 ```bash
-# 1. 克隆仓库
-git clone https://github.com/988hj7tczd-oss/aihouse.git
-cd aihouse
+# 下载 wheel 包
+curl -L -o aihouse-0.1.0-py3-none-any.whl \
+  https://github.com/988hj7tczd-oss/aihouse/releases/download/v0.1.0/aihouse-0.1.0-py3-none-any.whl
 
-# 2. 安装后端
-pip install -e .
+# 安装
+pip install aihouse-0.1.0-py3-none-any.whl
 
-# 3. 初始化配置
+# 初始化
 aihouse init
 
-# 4. 检测本机 Agent
-aihouse detect
-
-# 5. 启动监控
+# 启动
 aihouse start
 
-# 6. 查看状态
-aihouse status
-```
-
-### Windows
-
-```powershell
-# 1. 克隆仓库
-git clone https://github.com/988hj7tczd-oss/aihouse.git
-cd aihouse
-
-# 2. 安装后端
-pip install -e .
-
-# 3. 初始化配置
-aihouse init
-
-# 4. 检测本机 Agent
-aihouse detect
-
-# 5. 启动监控
-aihouse start
-
-# 6. 查看状态
+# 查看状态
 aihouse status
 ```
 
