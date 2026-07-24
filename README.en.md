@@ -54,7 +54,7 @@
 
 > Download the latest wheel from [GitHub Releases](https://github.com/988hj7tczd-oss/aihouse/releases).
 
-### macOS
+### macOS / Linux
 
 ```bash
 curl -L -o aihouse-0.1.0-py3-none-any.whl \
@@ -69,17 +69,6 @@ aihouse status
 
 ```powershell
 curl -L -o aihouse-0.1.0-py3-none-any.whl ^
-  https://github.com/988hj7tczd-oss/aihouse/releases/download/v0.1.0/aihouse-0.1.0-py3-none-any.whl
-pip install aihouse-0.1.0-py3-none-any.whl
-aihouse init
-aihouse start
-aihouse status
-```
-
-### Linux
-
-```bash
-curl -L -o aihouse-0.1.0-py3-none-any.whl \
   https://github.com/988hj7tczd-oss/aihouse/releases/download/v0.1.0/aihouse-0.1.0-py3-none-any.whl
 pip install aihouse-0.1.0-py3-none-any.whl
 aihouse init
