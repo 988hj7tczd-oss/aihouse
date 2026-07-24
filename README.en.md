@@ -52,22 +52,69 @@
 
 ## 📦 Installation
 
-### Quick Install
+### Prerequisites
+
+- Python 3.9 or later
+- pip (Python package manager)
+- (Desktop app optional) Node.js 18+ and Rust
+
+### macOS / Linux
 
 ```bash
+# 1. Install Python (if not installed)
+brew install python      # macOS
+# or sudo apt install python3 python3-pip  # Ubuntu/Debian
+
+# 2. Install AIHouse
 pip install aihouse
+
+# 3. Initialize config
 aihouse init
+
+# 4. Detect agents on your machine
+aihouse detect
+
+# 5. Start monitoring
 aihouse start
+
+# 6. Check status
+aihouse status
+```
+
+### Windows
+
+```powershell
+# 1. Install Python (if not installed)
+# Download https://www.python.org/downloads/ check "Add Python to PATH"
+
+# 2. Install AIHouse
+pip install aihouse
+
+# 3. Initialize config
+aihouse init
+
+# 4. Detect agents on your machine
+aihouse detect
+
+# 5. Start monitoring
+aihouse start
+
+# 6. Check status
 aihouse status
 ```
 
 ### Desktop App (Optional)
 
+The desktop app provides a system tray icon and visual dashboard.
+
 ```bash
+# Install Node.js: https://nodejs.org/
+# Install Rust: https://rustup.rs/
+
 cd desktop
 npm install
-npm run tauri dev     # Development
-npm run tauri build   # Production build
+npm run tauri dev     # Development mode
+npm run tauri build   # Build installer
 ```
 
 ---

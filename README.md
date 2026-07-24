@@ -54,22 +54,69 @@
 
 ## 📦 安装
 
-### 一键安装
+### 前置要求
+
+- Python 3.9 或更高版本
+- pip（Python 包管理器）
+- （桌面端可选）Node.js 18+ 和 Rust
+
+### macOS / Linux
 
 ```bash
+# 1. 安装 Python（如果没装）
+brew install python      # macOS
+# 或 sudo apt install python3 python3-pip  # Ubuntu/Debian
+
+# 2. 安装 AIHouse
 pip install aihouse
+
+# 3. 初始化配置
 aihouse init
+
+# 4. 检测本机 Agent
+aihouse detect
+
+# 5. 启动监控
 aihouse start
+
+# 6. 查看状态
+aihouse status
+```
+
+### Windows
+
+```powershell
+# 1. 安装 Python（如果没装）
+# 下载 https://www.python.org/downloads/ 勾选 "Add Python to PATH"
+
+# 2. 安装 AIHouse
+pip install aihouse
+
+# 3. 初始化配置
+aihouse init
+
+# 4. 检测本机 Agent
+aihouse detect
+
+# 5. 启动监控
+aihouse start
+
+# 6. 查看状态
 aihouse status
 ```
 
 ### 桌面端（可选）
 
+桌面端提供系统托盘图标和可视化面板。
+
 ```bash
+# 安装 Node.js：https://nodejs.org/
+# 安装 Rust：https://rustup.rs/
+
 cd desktop
 npm install
 npm run tauri dev     # 开发模式
-npm run tauri build   # 构建安装包
+npm run tauri build   # 打包安装程序
 ```
 
 > 详细安装说明请查看 [安装指南](docs/installation.md)
