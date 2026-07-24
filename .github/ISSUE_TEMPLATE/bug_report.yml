@@ -1,0 +1,38 @@
+name: Bug Report
+description: 报告一个问题
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: input
+    id: version
+    attributes:
+      label: AIHouse 版本
+      description: 运行 `aihouse --version` 查看
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 操作系统
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 清楚描述你遇到的问题
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志信息
+      description: 运行 `aihouse log` 查看日志
+      render: shell
