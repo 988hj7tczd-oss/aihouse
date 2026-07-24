@@ -52,25 +52,38 @@
 
 ## 📦 Installation
 
-### From GitHub Release (Mac / Windows / Linux)
+> Download the latest wheel from [GitHub Releases](https://github.com/988hj7tczd-oss/aihouse/releases).
 
-Download from [GitHub Releases](https://github.com/988hj7tczd-oss/aihouse/releases):
+### macOS
 
 ```bash
-# Download the wheel
 curl -L -o aihouse-0.1.0-py3-none-any.whl \
   https://github.com/988hj7tczd-oss/aihouse/releases/download/v0.1.0/aihouse-0.1.0-py3-none-any.whl
-
-# Install
 pip install aihouse-0.1.0-py3-none-any.whl
-
-# Initialize
 aihouse init
-
-# Start
 aihouse start
+aihouse status
+```
 
-# Check status
+### Windows
+
+```powershell
+curl -L -o aihouse-0.1.0-py3-none-any.whl ^
+  https://github.com/988hj7tczd-oss/aihouse/releases/download/v0.1.0/aihouse-0.1.0-py3-none-any.whl
+pip install aihouse-0.1.0-py3-none-any.whl
+aihouse init
+aihouse start
+aihouse status
+```
+
+### Linux
+
+```bash
+curl -L -o aihouse-0.1.0-py3-none-any.whl \
+  https://github.com/988hj7tczd-oss/aihouse/releases/download/v0.1.0/aihouse-0.1.0-py3-none-any.whl
+pip install aihouse-0.1.0-py3-none-any.whl
+aihouse init
+aihouse start
 aihouse status
 ```
 

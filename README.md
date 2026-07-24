@@ -54,25 +54,38 @@
 
 ## 📦 安装
 
-### 从 Release 安装（推荐，支持 Mac / Windows / Linux）
+> 从 [GitHub Releases](https://github.com/988hj7tczd-oss/aihouse/releases) 下载最新版 wheel 包安装。
 
-从 [GitHub Releases](https://github.com/988hj7tczd-oss/aihouse/releases) 下载最新版：
+### macOS
 
 ```bash
-# 下载 wheel 包
 curl -L -o aihouse-0.1.0-py3-none-any.whl \
   https://github.com/988hj7tczd-oss/aihouse/releases/download/v0.1.0/aihouse-0.1.0-py3-none-any.whl
-
-# 安装
 pip install aihouse-0.1.0-py3-none-any.whl
-
-# 初始化
 aihouse init
-
-# 启动
 aihouse start
+aihouse status
+```
 
-# 查看状态
+### Windows
+
+```powershell
+curl -L -o aihouse-0.1.0-py3-none-any.whl ^
+  https://github.com/988hj7tczd-oss/aihouse/releases/download/v0.1.0/aihouse-0.1.0-py3-none-any.whl
+pip install aihouse-0.1.0-py3-none-any.whl
+aihouse init
+aihouse start
+aihouse status
+```
+
+### Linux
+
+```bash
+curl -L -o aihouse-0.1.0-py3-none-any.whl \
+  https://github.com/988hj7tczd-oss/aihouse/releases/download/v0.1.0/aihouse-0.1.0-py3-none-any.whl
+pip install aihouse-0.1.0-py3-none-any.whl
+aihouse init
+aihouse start
 aihouse status
 ```
 
