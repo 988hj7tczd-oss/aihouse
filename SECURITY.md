@@ -11,7 +11,7 @@
 
 **请勿公开提交安全相关的 Issue。**
 
-请将漏洞报告发送至：**security@aihouse.dev**
+📧 **jerryweizhihao@gmail.com**
 
 我们承诺：
 - **48 小时内**确认收到报告

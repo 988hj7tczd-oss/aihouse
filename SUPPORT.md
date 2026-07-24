@@ -19,4 +19,4 @@
 
 ## 📧 商业支持
 
-商业使用或定制需求请联系：support@aihouse.dev
+商业使用或定制需求请联系：**jerryweizhihao@gmail.com**
