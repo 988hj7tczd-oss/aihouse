@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import time
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 
@@ -41,6 +42,16 @@ LOGO = r"""
 
   AIHouse — AI Agent Monitor
 """
+
+
+def _check_api_alive() -> bool:
+    """检查 API 服务器是否在运行（通过连接端口 9800）"""
+    try:
+        req = urllib.request.Request("http://127.0.0.1:9800/api/health")
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
 
 
 def _kill_process(pid: int) -> None:
@@ -119,6 +130,10 @@ def init() -> None:
 @cli.command()
 def start() -> None:
     """启动后台守护进程"""
+    if _check_api_alive():
+        click.echo("AIHouse 已在运行中")
+        return
+
     if os.path.exists(PID_FILE):
         try:
             with open(PID_FILE) as f:
@@ -147,34 +162,33 @@ def start() -> None:
 @cli.command()
 def stop() -> None:
     """停止后台守护进程"""
-    if not os.path.exists(PID_FILE):
+    if not _check_api_alive() and not os.path.exists(PID_FILE):
         click.echo("AIHouse 未在运行")
         return
 
-    with open(PID_FILE) as f:
-        pid = int(f.read().strip())
+    if _check_api_alive():
+        try:
+            requests.post(f"{API_BASE}/shutdown", timeout=3)
+        except Exception:
+            pass
 
-    _kill_process(pid)
+    if os.path.exists(PID_FILE):
+        try:
+            with open(PID_FILE) as f:
+                pid = int(f.read().strip())
+            _kill_process(pid)
+        except (OSError, ValueError):
+            pass
+        os.remove(PID_FILE)
 
-    os.remove(PID_FILE)
     click.echo("AIHouse 已停止")
 
 
 @cli.command()
 def status() -> None:
     """查看运行状态"""
-    if not os.path.exists(PID_FILE):
+    if not _check_api_alive():
         click.echo("未启动")
-        return
-
-    with open(PID_FILE) as f:
-        pid = int(f.read().strip())
-
-    try:
-        os.kill(pid, 0)
-    except OSError:
-        click.echo("未启动 (PID 文件存在但进程已退出)")
-        os.remove(PID_FILE)
         return
 
     try:
@@ -192,7 +206,7 @@ def status() -> None:
     except Exception:
         agents = []
 
-    click.echo(f"AIHouse 运行中 (PID: {pid}, v{version})")
+    click.echo(f"AIHouse 运行中 (v{version})")
     click.echo(f"  Agent 数: {summary.get('total', 0)}")
 
     for agent in agents:
@@ -257,18 +271,25 @@ def restart() -> None:
     import subprocess as sp
     import sys as _sys
 
-    # 先停止
-    if os.path.exists(PID_FILE):
+    if _check_api_alive() or os.path.exists(PID_FILE):
         click.echo("正在停止...")
-        with open(PID_FILE) as f:
-            pid = int(f.read().strip())
-        _kill_process(pid)
-        os.remove(PID_FILE)
+        if _check_api_alive():
+            try:
+                requests.post(f"{API_BASE}/shutdown", timeout=3)
+            except Exception:
+                pass
+        if os.path.exists(PID_FILE):
+            try:
+                with open(PID_FILE) as f:
+                    pid = int(f.read().strip())
+                _kill_process(pid)
+            except (OSError, ValueError):
+                pass
+            os.remove(PID_FILE)
         time.sleep(2)
     else:
         click.echo("AIHouse 未在运行，直接启动")
 
-    # 再启动
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
     proc = sp.Popen(
         [_sys.executable, "-c", "from aihouse.cli import daemon; daemon()"],
@@ -427,7 +448,9 @@ def _diagnose_one(agent: dict) -> None:
 
 
 def _is_backend_running() -> bool:
-    """检查后端是否在运行（通过 PID 文件或端口检测）"""
+    """检查后端是否在运行（API 检测 + PID 文件兜底）"""
+    if _check_api_alive():
+        return True
     if os.path.exists(PID_FILE):
         try:
             with open(PID_FILE) as f:
@@ -435,11 +458,5 @@ def _is_backend_running() -> bool:
             os.kill(pid, 0)
             return True
         except (OSError, ValueError):
-            pass
-    # 端口检测
-    try:
-        import urllib.request
-        urllib.request.urlopen("http://127.0.0.1:9800/api/health", timeout=1)
-        return True
-    except Exception:
-        return False
+            os.remove(PID_FILE)
+    return False
