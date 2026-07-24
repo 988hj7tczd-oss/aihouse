@@ -205,6 +205,7 @@ def status() -> None:
         summary = data.get("summary", {})
     except Exception:
         agents = []
+        summary = {}
 
     click.echo(f"AIHouse 运行中 (v{version})")
     click.echo(f"  Agent 数: {summary.get('total', 0)}")
