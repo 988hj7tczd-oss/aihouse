@@ -10,6 +10,8 @@
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](pyproject.toml)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)]()
 
+**中文** | [English](README.en.md)
+
 ---
 
 ## 🖥️ 界面预览
