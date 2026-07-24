@@ -58,37 +58,15 @@
 - pip (Python package manager)
 - (Desktop app optional) Node.js 18+ and Rust
 
-### macOS / Linux
+### Install from Source (current method)
 
 ```bash
-# 1. Install Python (if not installed)
-brew install python      # macOS
-# or sudo apt install python3 python3-pip  # Ubuntu/Debian
+# 1. Clone repository
+git clone https://github.com/988hj7tczd-oss/aihouse.git
+cd aihouse
 
-# 2. Install AIHouse
-pip install aihouse
-
-# 3. Initialize config
-aihouse init
-
-# 4. Detect agents on your machine
-aihouse detect
-
-# 5. Start monitoring
-aihouse start
-
-# 6. Check status
-aihouse status
-```
-
-### Windows
-
-```powershell
-# 1. Install Python (if not installed)
-# Download https://www.python.org/downloads/ check "Add Python to PATH"
-
-# 2. Install AIHouse
-pip install aihouse
+# 2. Install backend
+pip install -e .
 
 # 3. Initialize config
 aihouse init
@@ -102,6 +80,8 @@ aihouse start
 # 6. Check status
 aihouse status
 ```
+
+> Will be available on PyPI soon (`pip install aihouse`)
 
 ### Desktop App (Optional)
 

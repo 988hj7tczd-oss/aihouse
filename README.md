@@ -58,39 +58,18 @@
 
 - Python 3.9 或更高版本
 - pip（Python 包管理器）
+- Git
 - （桌面端可选）Node.js 18+ 和 Rust
 
-### macOS / Linux
+### 从源码安装（目前方式）
 
 ```bash
-# 1. 安装 Python（如果没装）
-brew install python      # macOS
-# 或 sudo apt install python3 python3-pip  # Ubuntu/Debian
+# 1. 克隆仓库
+git clone https://github.com/988hj7tczd-oss/aihouse.git
+cd aihouse
 
-# 2. 安装 AIHouse
-pip install aihouse
-
-# 3. 初始化配置
-aihouse init
-
-# 4. 检测本机 Agent
-aihouse detect
-
-# 5. 启动监控
-aihouse start
-
-# 6. 查看状态
-aihouse status
-```
-
-### Windows
-
-```powershell
-# 1. 安装 Python（如果没装）
-# 下载 https://www.python.org/downloads/ 勾选 "Add Python to PATH"
-
-# 2. 安装 AIHouse
-pip install aihouse
+# 2. 安装后端
+pip install -e .
 
 # 3. 初始化配置
 aihouse init
@@ -104,6 +83,8 @@ aihouse start
 # 6. 查看状态
 aihouse status
 ```
+
+> 后续会上传 PyPI，届时只需 `pip install aihouse`
 
 ### 桌面端（可选）
 
