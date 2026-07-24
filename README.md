@@ -214,7 +214,7 @@ aihouse stop
 
 MIT License
 
-Copyright (c) 2026 Zhuanz
+Copyright (c) 2026 Jerry Wei
 
 ---
 
