@@ -21,9 +21,7 @@ class CodexAdapter(AgentAdapter):
         self._process_name: str = config.get("process_name", "codex")
 
     def detect(self) -> bool:
-        if shutil.which("codex") is not None:
-            return True
-        return bool(self._find_processes())
+        return shutil.which("codex") is not None
 
     def _find_processes(self) -> List[Dict[str, Any]]:
         results: List[Dict[str, Any]] = []

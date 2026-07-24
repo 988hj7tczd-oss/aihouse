@@ -54,6 +54,14 @@ def _check_api_alive() -> bool:
         return False
 
 
+def _python_exe() -> str:
+    """Windows 上返回 pythonw.exe 以隐藏 CMD 窗口，其他系统返回 python3"""
+    if platform.system() == "Windows":
+        exe = sys.executable.replace("python.exe", "pythonw.exe")
+        return exe if os.path.exists(exe) else sys.executable
+    return sys.executable
+
+
 def _kill_process(pid: int) -> None:
     """跨平台终止进程"""
     system = platform.system()
@@ -147,7 +155,7 @@ def start() -> None:
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 
     proc = subprocess.Popen(
-        [sys.executable, "-c",
+        [_python_exe(), "-c",
          "from aihouse.cli import daemon; daemon()"],
         stdout=open(LOG_FILE, "a"),
         stderr=subprocess.STDOUT,
@@ -293,7 +301,7 @@ def restart() -> None:
 
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
     proc = sp.Popen(
-        [_sys.executable, "-c", "from aihouse.cli import daemon; daemon()"],
+        [_python_exe(), "-c", "from aihouse.cli import daemon; daemon()"],
         stdout=open(LOG_FILE, "a"),
         stderr=sp.STDOUT,
     )
@@ -324,22 +332,35 @@ def config() -> None:
 @cli.command()
 def desktop() -> None:
     """启动 AIHouse 桌面端（自动启动后端）"""
-    # 确保后端在运行
     if not _is_backend_running():
         click.echo("后端未运行，正在启动...")
-        try:
-            config = load_config()
-            storage = Storage()
-            notifier_obj = Notifier(config.get("notifications", []), storage)
-            scheduler_obj = Scheduler(storage, notifier_obj, config)
-            scheduler_obj.start()
-            server_obj = Server(scheduler_obj, storage, notifier_obj)
-            server_obj.start()
-            click.echo("后端已启动")
-        except Exception as e:
-            click.echo(f"启动后端失败: {e}", err=True)
-            click.echo("请先运行 aihouse start")
-            raise click.Abort()
+        if platform.system() == "Windows":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            proc = subprocess.Popen(
+                [_python_exe(), "-c", "from aihouse.cli import daemon; daemon()"],
+                stdout=open(LOG_FILE, "a"),
+                stderr=subprocess.STDOUT,
+                startupinfo=startupinfo,
+                creationflags=subprocess.CREATE_NO_WINDOW,
+            )
+            with open(PID_FILE, "w") as f:
+                f.write(str(proc.pid))
+            click.echo(f"后端已启动 (PID: {proc.pid})")
+        else:
+            try:
+                config = load_config()
+                storage = Storage()
+                notifier_obj = Notifier(config.get("notifications", []), storage)
+                scheduler_obj = Scheduler(storage, notifier_obj, config)
+                scheduler_obj.start()
+                server_obj = Server(scheduler_obj, storage, notifier_obj)
+                server_obj.start()
+                click.echo("后端已启动")
+            except Exception as e:
+                click.echo(f"启动后端失败: {e}", err=True)
+                click.echo("请先运行 aihouse start")
+                raise click.Abort()
 
     binary = os.path.expanduser(
         "~/Projects/aihouse/desktop/src-tauri/target/release/aihouse"
@@ -352,7 +373,15 @@ def desktop() -> None:
         return
 
     click.echo("启动桌面端...")
-    subprocess.Popen([binary], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if platform.system() == "Windows":
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        subprocess.Popen(
+            [binary], startupinfo=startupinfo,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+    else:
+        subprocess.Popen([binary], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 @cli.command()
