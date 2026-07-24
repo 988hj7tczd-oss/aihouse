@@ -12,6 +12,7 @@ import time
 import urllib.request
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import click
 import psutil
@@ -60,6 +61,35 @@ def _python_exe() -> str:
         exe = sys.executable.replace("python.exe", "pythonw.exe")
         return exe if os.path.exists(exe) else sys.executable
     return sys.executable
+
+
+def _find_desktop_binary() -> Optional[str]:
+    system = platform.system()
+    candidates = []
+
+    if system == "Darwin":
+        candidates.append("/Applications/AIHouse.app/Contents/MacOS/aihouse")
+    elif system == "Windows":
+        candidates.append(os.path.expandvars(r"%ProgramFiles%\AIHouse\AIHouse.exe"))
+        candidates.append(os.path.expandvars(r"%LocalAppData%\AIHouse\AIHouse.exe"))
+    elif system == "Linux":
+        candidates.append(os.path.expanduser("~/.local/bin/aihouse-desktop"))
+        candidates.append("/usr/local/bin/aihouse-desktop")
+
+    dev_path = os.path.expanduser(
+        "~/Projects/aihouse/desktop/src-tauri/target/release/aihouse"
+    )
+    dev_path_win = dev_path.replace("/", "\\") + ".exe"
+
+    if system == "Windows" and os.path.exists(dev_path_win):
+        candidates.append(dev_path_win)
+    elif os.path.exists(dev_path):
+        candidates.append(dev_path)
+
+    for p in candidates:
+        if os.path.exists(p):
+            return p
+    return None
 
 
 def _kill_process(pid: int) -> None:
@@ -362,14 +392,9 @@ def desktop() -> None:
                 click.echo("请先运行 aihouse start")
                 raise click.Abort()
 
-    binary = os.path.expanduser(
-        "~/Projects/aihouse/desktop/src-tauri/target/release/aihouse"
-    )
-
-    if not os.path.exists(binary):
-        click.echo("桌面端未编译，正在编译（首次需要 2-5 分钟）...")
-        click.echo("cd desktop && npm run tauri build")
-        click.echo("编译完成后再次运行 aihouse desktop")
+    binary = _find_desktop_binary()
+    if binary is None:
+        click.echo("未找到桌面端，请先运行 aihouse desktop-install 下载")
         return
 
     click.echo("启动桌面端...")
