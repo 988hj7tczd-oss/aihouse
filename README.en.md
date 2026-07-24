@@ -58,9 +58,32 @@
 - pip (Python package manager)
 - (Desktop app optional) Node.js 18+ and Rust
 
-### Install from Source (current method)
+### macOS / Linux
 
 ```bash
+# 1. Clone repository
+git clone https://github.com/988hj7tczd-oss/aihouse.git
+cd aihouse
+
+# 2. Install backend
+pip install -e .
+
+# 3. Initialize config
+aihouse init
+
+# 4. Detect agents on your machine
+aihouse detect
+
+# 5. Start monitoring
+aihouse start
+
+# 6. Check status
+aihouse status
+```
+
+### Windows
+
+```powershell
 # 1. Clone repository
 git clone https://github.com/988hj7tczd-oss/aihouse.git
 cd aihouse

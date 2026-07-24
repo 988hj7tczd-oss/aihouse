@@ -61,7 +61,7 @@
 - Git
 - （桌面端可选）Node.js 18+ 和 Rust
 
-### 从源码安装（目前方式）
+### macOS / Linux
 
 ```bash
 # 1. 克隆仓库
@@ -84,7 +84,30 @@ aihouse start
 aihouse status
 ```
 
-> 后续会上传 PyPI，届时只需 `pip install aihouse`
+### Windows
+
+```powershell
+# 1. 克隆仓库
+git clone https://github.com/988hj7tczd-oss/aihouse.git
+cd aihouse
+
+# 2. 安装后端
+pip install -e .
+
+# 3. 初始化配置
+aihouse init
+
+# 4. 检测本机 Agent
+aihouse detect
+
+# 5. 启动监控
+aihouse start
+
+# 6. 查看状态
+aihouse status
+```
+
+> 后续上传 PyPI 后，只需 `pip install aihouse`
 
 ### 桌面端（可选）
 
