@@ -94,6 +94,10 @@ const translations = {
     failed_connect: '连接后端失败',
     yes: '是',
     no: '否',
+    scheduled_tasks: '定时任务',
+    no_scheduled_tasks: '暂无定时任务',
+    gateway_status: '机器人/接口状态',
+    no_platforms: '暂无机器人连接',
     msg: '',
   },
   en: {
@@ -181,6 +185,10 @@ const translations = {
     failed_connect: 'Failed to Connect',
     yes: 'Yes',
     no: 'No',
+    scheduled_tasks: 'Scheduled Tasks',
+    no_scheduled_tasks: 'No Scheduled Tasks',
+    gateway_status: 'Gateway / Bots',
+    no_platforms: 'No Platforms',
     msg: '',
   },
 };

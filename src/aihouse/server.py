@@ -2,7 +2,9 @@
 Flask REST API 服务器 — 为桌面端和 CLI 提供数据接口
 """
 
+import json
 import threading
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from flask import Flask, jsonify, request
@@ -251,7 +253,69 @@ class Server:
 
             return jsonify({"costs": costs, "total_today": round(total, 4)})
 
-        # ── 健康检查 ──
+        # ── Agent 详情 ──
+
+        @self._flask.route("/api/agents/<agent_type>/details")
+        def get_agent_details(agent_type):
+            if not self._scheduler:
+                return jsonify({"error": "scheduler not available"}), 503
+
+            adapter = self._scheduler.get_adapter(agent_type)
+            if adapter is None:
+                return jsonify({"error": f"adapter not found: {agent_type}"}), 404
+
+            try:
+                status = adapter.get_status()
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+            result = self._status_to_dict(status)
+            result["recent_tasks"] = []
+
+            cron_jobs = []
+            gateway = {}
+            if agent_type == "hermes":
+                cron_path = Path.home() / ".hermes" / "cron" / "jobs.json"
+                if cron_path.is_file():
+                    try:
+                        cron_data = json.loads(cron_path.read_text(encoding="utf-8"))
+                        cron_jobs = cron_data.get("jobs", [])
+                    except (OSError, json.JSONDecodeError):
+                        pass
+
+                gw_path = Path.home() / ".hermes" / "gateway_state.json"
+                if gw_path.is_file():
+                    try:
+                        gateway = json.loads(gw_path.read_text(encoding="utf-8"))
+                    except (OSError, json.JSONDecodeError):
+                        pass
+
+            result["cron_jobs"] = [
+                {
+                    "id": j.get("id", ""),
+                    "name": j.get("name", ""),
+                    "schedule": j.get("schedule_display") or (j.get("schedule") or {}).get("display", ""),
+                    "enabled": j.get("enabled", False),
+                    "state": j.get("state", ""),
+                    "next_run": j.get("next_run_at", ""),
+                }
+                for j in cron_jobs
+            ]
+
+            platforms = gateway.get("platforms", {})
+            result["gateway"] = {
+                "state": gateway.get("gateway_state", "unknown"),
+                "platforms": [
+                    {
+                        "name": name,
+                        "state": info.get("state", "unknown"),
+                        "error": info.get("error_message"),
+                    }
+                    for name, info in platforms.items()
+                ],
+            }
+
+            return jsonify(result)
 
         @self._flask.route("/api/health")
         def health():
