@@ -357,25 +357,36 @@ def desktop() -> None:
 
 @cli.command()
 def desktop_install() -> None:
-    """自动下载并安装桌面端"""
+    """下载并安装桌面端"""
     system = platform.system()
     repo = "988hj7tczd-oss/aihouse"
     version = "v0.1.0"
+    base = f"https://github.com/{repo}/releases/download/{version}"
 
     if system == "Darwin":
-        url = f"https://github.com/{repo}/releases/download/{version}/AIHouse_0.1.0_macos.dmg"
+        url = f"{base}/AIHouse_0.1.0_macos.dmg"
+        dest = os.path.expanduser("~/Downloads/AIHouse_0.1.0.dmg")
         click.echo("下载 macOS 桌面版...")
-        download_path = os.path.expanduser("~/Downloads/AIHouse_0.1.0.dmg")
-        try:
-            urllib.request.urlretrieve(url, download_path)
-            click.echo(f"已下载到: {download_path}")
-            click.echo("打开 dmg 文件，将 AIHouse.app 拖到 Applications 文件夹")
-        except Exception as e:
-            click.echo(f"下载失败: {e}", err=True)
+        urllib.request.urlretrieve(url, dest)
+        click.echo(f"已下载: {dest}")
+        click.echo("打开 dmg 文件，将 AIHouse.app 拖到 Applications 文件夹")
+
     elif system == "Windows":
-        click.echo("Windows 桌面版编译中，稍后再试")
+        url = f"{base}/AIHouse_0.1.0_windows_x64-setup.exe"
+        dest = os.path.expanduser("~/Downloads/AIHouse_0.1.0_Setup.exe")
+        click.echo("下载 Windows 桌面版...")
+        urllib.request.urlretrieve(url, dest)
+        click.echo(f"已下载: {dest}")
+        click.echo("运行安装程序即可安装桌面端")
+
     elif system == "Linux":
-        click.echo("Linux 桌面版编译中，稍后再试")
+        url = f"{base}/AIHouse_0.1.0_linux_x64.deb"
+        dest = "/tmp/aihouse.deb"
+        click.echo("下载 Linux 桌面版...")
+        urllib.request.urlretrieve(url, dest)
+        click.echo(f"已下载: {dest}")
+        click.echo("运行 sudo dpkg -i /tmp/aihouse.deb 安装")
+
     else:
         click.echo(f"不支持的操作系统: {system}")
 
