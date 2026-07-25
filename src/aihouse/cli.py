@@ -110,7 +110,7 @@ def _kill_process(pid: int) -> None:
             pass
 
 
-def daemon() -> None:
+def _daemon() -> None:
     """后台运行：启动调度器和 API 服务器"""
     config = load_config()
     storage = Storage()
@@ -186,7 +186,7 @@ def start() -> None:
 
     proc = subprocess.Popen(
         [_python_exe(), "-c",
-         "from aihouse.cli import daemon; daemon()"],
+         "from aihouse.cli import _daemon; _daemon()"],
         stdout=open(LOG_FILE, "a"),
         stderr=subprocess.STDOUT,
     )
@@ -331,7 +331,7 @@ def restart() -> None:
 
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
     proc = sp.Popen(
-        [_python_exe(), "-c", "from aihouse.cli import daemon; daemon()"],
+        [_python_exe(), "-c", "from aihouse.cli import _daemon; _daemon()"],
         stdout=open(LOG_FILE, "a"),
         stderr=sp.STDOUT,
     )
@@ -368,7 +368,7 @@ def desktop() -> None:
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             proc = subprocess.Popen(
-                [_python_exe(), "-c", "from aihouse.cli import daemon; daemon()"],
+                [_python_exe(), "-c", "from aihouse.cli import _daemon; _daemon()"],
                 stdout=open(LOG_FILE, "a"),
                 stderr=subprocess.STDOUT,
                 startupinfo=startupinfo,
@@ -409,40 +409,27 @@ def desktop() -> None:
         subprocess.Popen([binary], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
+@cli.command(hidden=True)
+def daemon() -> None:
+    """启动后端守护进程（供桌面端内部调用）"""
+    _daemon()
+
+
 @cli.command()
 def desktop_install() -> None:
-    """下载并安装桌面端"""
-    system = platform.system()
-    repo = "988hj7tczd-oss/aihouse"
-    version = "v0.1.0"
-    base = f"https://github.com/{repo}/releases/download/{version}"
+    """从源码构建桌面端"""
+    click.echo("从源码构建桌面端...")
+    click.echo("")
 
-    if system == "Darwin":
-        url = f"{base}/AIHouse_0.1.0_macos.dmg"
-        dest = os.path.expanduser("~/Downloads/AIHouse_0.1.0.dmg")
-        click.echo("下载 macOS 桌面版...")
-        urllib.request.urlretrieve(url, dest)
-        click.echo(f"已下载: {dest}")
-        click.echo("打开 dmg 文件，将 AIHouse.app 拖到 Applications 文件夹")
+    desktop_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "desktop")
+    if not os.path.exists(os.path.join(desktop_dir, "package.json")):
+        desktop_dir = os.path.expanduser("~/Projects/aihouse/desktop")
 
-    elif system == "Windows":
-        url = f"{base}/AIHouse_0.1.0_windows_x64-setup.exe"
-        dest = os.path.expanduser("~/Downloads/AIHouse_0.1.0_Setup.exe")
-        click.echo("下载 Windows 桌面版...")
-        urllib.request.urlretrieve(url, dest)
-        click.echo(f"已下载: {dest}")
-        click.echo("运行安装程序即可安装桌面端")
-
-    elif system == "Linux":
-        url = f"{base}/AIHouse_0.1.0_linux_x64.deb"
-        dest = "/tmp/aihouse.deb"
-        click.echo("下载 Linux 桌面版...")
-        urllib.request.urlretrieve(url, dest)
-        click.echo(f"已下载: {dest}")
-        click.echo("运行 sudo dpkg -i /tmp/aihouse.deb 安装")
-
-    else:
-        click.echo(f"不支持的操作系统: {system}")
+    click.echo(f"  1. cd {desktop_dir}")
+    click.echo("  2. npm install")
+    click.echo("  3. npm run tauri build")
+    click.echo("")
+    click.echo("构建完成后，桌面端将安装在:")
 
 
 @cli.command()

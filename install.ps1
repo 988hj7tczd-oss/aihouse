@@ -1,21 +1,17 @@
-Write-Host ""
-Write-Host "  ╔═══════════════════════════════════════╗"
-Write-Host "  ║       AIHouse - AI Agent Monitor      ║"
-Write-Host "  ╚═══════════════════════════════════════╝"
-Write-Host ""
-
 Write-Host "📦 安装 AIHouse..." -ForegroundColor Cyan
 
-# 从 GitHub Release 安装
-pip install https://github.com/988hj7tczd-oss/aihouse/releases/download/v0.1.0/aihouse-0.1.0-py3-none-any.whl 2>$null
+pip install aihouse
 
-# 初始化
-aihouse init 2>$null
+aihouse init
+
+aihouse detect
 
 Write-Host ""
+Write-Host "📱 构建桌面端..."
+Write-Host ""
+Write-Host "  cd desktop && npm install && npm run tauri build"
+Write-Host ""
+
 Write-Host "✅ AIHouse 安装完成！" -ForegroundColor Green
-Write-Host ""
-Write-Host "   aihouse start     启动监控"
-Write-Host "   aihouse status    查看状态"
-Write-Host "   aihouse desktop   打开桌面端"
-Write-Host ""
+Write-Host "运行 aihouse start 启动监控"
+Write-Host "运行 aihouse desktop 打开桌面端"

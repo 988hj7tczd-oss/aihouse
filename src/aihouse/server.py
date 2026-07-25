@@ -96,20 +96,66 @@ class Server:
             if not self._scheduler:
                 return jsonify({"error": "scheduler not available"}), 503
 
+            from datetime import datetime
+            from aihouse.core.models import AgentActivity
+
             adapter = self._scheduler.get_adapter(agent_type)
             if adapter is None:
-                return jsonify({"error": f"adapter not found: {agent_type}"}), 404
+                result = {
+                    "name": agent_type, "type": agent_type,
+                    "activity": AgentActivity.NOT_RUNNING.value,
+                    "current_task": None, "last_task": None,
+                    "last_seen": datetime.now().isoformat(),
+                    "tasks_today": 0, "total_cost_today": 0.0, "pid": None,
+                    "recent_tasks": [],
+                }
+            else:
+                try:
+                    status = adapter.get_status()
+                except Exception as e:
+                    return jsonify({"error": str(e)}), 500
+                result = self._status_to_dict(status)
+                result["recent_tasks"] = [
+                    self._task_to_dict(t)
+                    for t in adapter.get_recent_tasks(limit=20)
+                ]
 
-            try:
-                status = adapter.get_status()
-            except Exception as e:
-                return jsonify({"error": str(e)}), 500
+            result["cron_jobs"] = []
+            result["gateway"] = {"state": "unknown", "platforms": []}
 
-            result = self._status_to_dict(status)
-            result["recent_tasks"] = [
-                self._task_to_dict(t)
-                for t in adapter.get_recent_tasks(limit=20)
-            ]
+            if agent_type == "hermes":
+                cron_path = Path.home() / ".hermes" / "cron" / "jobs.json"
+                if cron_path.is_file():
+                    try:
+                        cron_data = json.loads(cron_path.read_text(encoding="utf-8"))
+                        result["cron_jobs"] = [
+                            {
+                                "id": j.get("id", ""),
+                                "name": j.get("name", ""),
+                                "schedule": j.get("schedule_display") or (j.get("schedule") or {}).get("display", ""),
+                                "enabled": j.get("enabled", False),
+                                "state": j.get("state", ""),
+                                "next_run": j.get("next_run_at", ""),
+                            }
+                            for j in cron_data.get("jobs", [])
+                        ]
+                    except (OSError, json.JSONDecodeError):
+                        pass
+
+                gw_path = Path.home() / ".hermes" / "gateway_state.json"
+                if gw_path.is_file():
+                    try:
+                        gw_data = json.loads(gw_path.read_text(encoding="utf-8"))
+                        result["gateway"] = {
+                            "state": gw_data.get("gateway_state", "unknown"),
+                            "platforms": [
+                                {"name": n, "state": i.get("state", "unknown"), "error": i.get("error_message")}
+                                for n, i in gw_data.get("platforms", {}).items()
+                            ],
+                        }
+                    except (OSError, json.JSONDecodeError):
+                        pass
+
             return jsonify(result)
 
         # ── 任务历史 ──
@@ -252,70 +298,6 @@ class Server:
                     continue
 
             return jsonify({"costs": costs, "total_today": round(total, 4)})
-
-        # ── Agent 详情 ──
-
-        @self._flask.route("/api/agents/<agent_type>/details")
-        def get_agent_details(agent_type):
-            if not self._scheduler:
-                return jsonify({"error": "scheduler not available"}), 503
-
-            adapter = self._scheduler.get_adapter(agent_type)
-            if adapter is None:
-                return jsonify({"error": f"adapter not found: {agent_type}"}), 404
-
-            try:
-                status = adapter.get_status()
-            except Exception as e:
-                return jsonify({"error": str(e)}), 500
-
-            result = self._status_to_dict(status)
-            result["recent_tasks"] = []
-
-            cron_jobs = []
-            gateway = {}
-            if agent_type == "hermes":
-                cron_path = Path.home() / ".hermes" / "cron" / "jobs.json"
-                if cron_path.is_file():
-                    try:
-                        cron_data = json.loads(cron_path.read_text(encoding="utf-8"))
-                        cron_jobs = cron_data.get("jobs", [])
-                    except (OSError, json.JSONDecodeError):
-                        pass
-
-                gw_path = Path.home() / ".hermes" / "gateway_state.json"
-                if gw_path.is_file():
-                    try:
-                        gateway = json.loads(gw_path.read_text(encoding="utf-8"))
-                    except (OSError, json.JSONDecodeError):
-                        pass
-
-            result["cron_jobs"] = [
-                {
-                    "id": j.get("id", ""),
-                    "name": j.get("name", ""),
-                    "schedule": j.get("schedule_display") or (j.get("schedule") or {}).get("display", ""),
-                    "enabled": j.get("enabled", False),
-                    "state": j.get("state", ""),
-                    "next_run": j.get("next_run_at", ""),
-                }
-                for j in cron_jobs
-            ]
-
-            platforms = gateway.get("platforms", {})
-            result["gateway"] = {
-                "state": gateway.get("gateway_state", "unknown"),
-                "platforms": [
-                    {
-                        "name": name,
-                        "state": info.get("state", "unknown"),
-                        "error": info.get("error_message"),
-                    }
-                    for name, info in platforms.items()
-                ],
-            }
-
-            return jsonify(result)
 
         @self._flask.route("/api/health")
         def health():

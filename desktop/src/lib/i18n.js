@@ -98,6 +98,7 @@ const translations = {
     no_scheduled_tasks: '暂无定时任务',
     gateway_status: '机器人/接口状态',
     no_platforms: '暂无机器人连接',
+    active: '活跃',
     msg: '',
   },
   en: {
@@ -189,6 +190,7 @@ const translations = {
     no_scheduled_tasks: 'No Scheduled Tasks',
     gateway_status: 'Gateway / Bots',
     no_platforms: 'No Platforms',
+    active: 'Active',
     msg: '',
   },
 };

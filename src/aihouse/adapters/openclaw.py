@@ -1,5 +1,4 @@
 import json
-import platform
 import shutil
 import sqlite3
 from datetime import datetime
@@ -10,8 +9,6 @@ import psutil
 
 from aihouse.core.adapter import AgentAdapter
 from aihouse.core.models import AgentActivity, AgentStatus, AgentTask, TaskStatus
-
-IS_WINDOWS = platform.system() == "Windows"
 
 OPENCLAW_DIRS = [
     Path.home() / ".openclaw",
@@ -57,21 +54,17 @@ class OpenClawAdapter(AgentAdapter):
     def detect(self) -> bool:
         if shutil.which("openclaw") is not None:
             return True
-        if self._find_config_dir() is not None:
-            return True
-        return bool(self._find_processes())
+        return self._find_config_dir() is not None
 
     def _find_processes(self) -> List[Dict[str, Any]]:
         results: List[Dict[str, Any]] = []
-        keywords = [self._process_name.lower()]
-        if IS_WINDOWS:
-            keywords.append(f"{self._process_name.lower()}.exe")
+        keyword = self._process_name.lower()
         for proc in psutil.process_iter(["pid", "name", "cmdline", "create_time"]):
             try:
                 info = proc.info
                 name = (info.get("name") or "").lower()
                 cmdline = " ".join(info.get("cmdline") or []).lower()
-                if any(kw in name or kw in cmdline for kw in keywords):
+                if keyword in name or keyword in cmdline:
                     results.append({
                         "pid": info["pid"],
                         "create_time": info.get("create_time"),
@@ -132,7 +125,6 @@ class OpenClawAdapter(AgentAdapter):
         cfg = self._read_config()
         if cfg is not None:
             session_id = str(cfg.get("session_id", cfg.get("currentSessionId", "")))
-            agent_id = str(cfg.get("agent_id", cfg.get("agentId", "")))
             description = cfg.get("description", cfg.get("task", ""))
 
             db_path_str = cfg.get("dbPath", cfg.get("databasePath", ""))
@@ -167,11 +159,4 @@ class OpenClawAdapter(AgentAdapter):
                     session_id=session_id,
                 )
 
-        if self._find_processes():
-            return AgentTask(
-                agent_name=self.name, agent_type=self.agent_type,
-                task_id=f"openclaw_{int(datetime.now().timestamp())}",
-                description="OpenClaw 正在运行",
-                started_at=datetime.now(), status=TaskStatus.RUNNING,
-            )
         return None

@@ -46,14 +46,15 @@
   if (typeof localStorage !== 'undefined') {
     alwaysOnTop = localStorage.getItem('aihouse_ontop') !== 'false';
   }
+  let getCurrentWindow;
+  import('@tauri-apps/api/window').then(m => {
+    getCurrentWindow = m.getCurrentWindow;
+  }).catch(() => {});
   function toggleAlwaysOnTop() {
     localStorage.setItem('aihouse_ontop', String(alwaysOnTop));
-    try {
-      const w = window.__TAURI__?.window;
-      if (w?.getCurrentWindow) {
-        w.getCurrentWindow().setAlwaysOnTop(alwaysOnTop);
-      }
-    } catch (e) { /* silent */ }
+    if (getCurrentWindow) {
+      try { getCurrentWindow().setAlwaysOnTop(alwaysOnTop); } catch {}
+    }
   }
 
   // ── 轮询间隔 ──

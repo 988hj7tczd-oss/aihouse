@@ -1,4 +1,3 @@
-import platform
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -8,8 +7,6 @@ import psutil
 
 from aihouse.core.adapter import AgentAdapter
 from aihouse.core.models import AgentActivity, AgentStatus, AgentTask, TaskStatus
-
-IS_WINDOWS = platform.system() == "Windows"
 
 CLINE_EXT_PATHS = [
     Path.home() / ".vscode" / "extensions",
@@ -37,21 +34,17 @@ class ClineAdapter(AgentAdapter):
     def detect(self) -> bool:
         if self._find_extensions():
             return True
-        if shutil.which(self._process_name) is not None:
-            return True
-        return bool(self._find_processes())
+        return shutil.which(self._process_name) is not None
 
     def _find_processes(self) -> List[Dict[str, Any]]:
         results: List[Dict[str, Any]] = []
-        keywords = [self._process_name.lower()]
-        if IS_WINDOWS:
-            keywords.append(f"{self._process_name.lower()}.exe")
+        keyword = self._process_name.lower()
         for proc in psutil.process_iter(["pid", "name", "cmdline", "create_time"]):
             try:
                 info = proc.info
                 name = (info.get("name") or "").lower()
                 cmdline = " ".join(info.get("cmdline") or []).lower()
-                if any(kw in name or kw in cmdline for kw in keywords):
+                if keyword in name or keyword in cmdline:
                     results.append({
                         "pid": info["pid"],
                         "create_time": info.get("create_time"),
@@ -77,25 +70,12 @@ class ClineAdapter(AgentAdapter):
         pid = proc["pid"]
         create_time = proc.get("create_time")
         last_seen = datetime.fromtimestamp(create_time) if create_time else datetime.now()
-        current_task = self.get_current_task()
-        activity = AgentActivity.ACTIVE if current_task else AgentActivity.IDLE
 
         return AgentStatus(
             agent_name=self.name, agent_type=self.agent_type,
-            activity=activity, current_task=current_task,
+            activity=AgentActivity.IDLE,
             last_seen=last_seen, tasks_today=0, total_cost_today=0.0, pid=pid,
         )
 
     def get_current_task(self) -> Optional[AgentTask]:
-        procs = self._find_processes()
-        if not procs:
-            return None
-        create_time = procs[0].get("create_time")
-        started_at = datetime.fromtimestamp(create_time) if create_time else datetime.now()
-        return AgentTask(
-            agent_name=self.name, agent_type=self.agent_type,
-            task_id=f"cline_{procs[0]['pid']}_{int(started_at.timestamp())}",
-            description="Cline 正在运行",
-            started_at=started_at, status=TaskStatus.RUNNING,
-            session_id=f"pid_{procs[0]['pid']}",
-        )
+        return None

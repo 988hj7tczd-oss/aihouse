@@ -1,4 +1,5 @@
 import json
+import os
 import platform
 import shutil
 import sqlite3
@@ -13,7 +14,12 @@ from aihouse.core.models import AgentActivity, AgentStatus, AgentTask, TaskStatu
 
 IS_WINDOWS = platform.system() == "Windows"
 
-OPENCODE_DB = Path.home() / ".local" / "share" / "opencode" / "opencode.db"
+CACHE_SECONDS = 60
+
+if IS_WINDOWS:
+    OPENCODE_DB = Path(os.environ.get("APPDATA", "")) / "opencode" / "opencode.db"
+else:
+    OPENCODE_DB = Path.home() / ".local" / "share" / "opencode" / "opencode.db"
 
 
 class OpenCodeAdapter(AgentAdapter):
@@ -25,6 +31,8 @@ class OpenCodeAdapter(AgentAdapter):
         config = config or {}
         self._process_names: list = config.get("processes", ["opencode", "opc"])
         self._db_path: str = config.get("db_path", str(OPENCODE_DB))
+        self._cached_session: Optional[Dict[str, Any]] = None
+        self._cached_at: Optional[datetime] = None
 
     def detect(self) -> bool:
         if shutil.which("opencode") is not None:
@@ -59,7 +67,7 @@ class OpenCodeAdapter(AgentAdapter):
         if not db_path.is_file():
             return None
         try:
-            conn = sqlite3.connect(str(db_path), timeout=1)
+            conn = sqlite3.connect(str(db_path), timeout=3)
             conn.row_factory = sqlite3.Row
             cursor = conn.execute(
                 "SELECT id, title, model, agent, time_created, time_updated, "
@@ -107,7 +115,15 @@ class OpenCodeAdapter(AgentAdapter):
     def get_current_task(self) -> Optional[AgentTask]:
         session = self._read_db_session()
         if session is None:
-            return None
+            if self._cached_session is not None and self._cached_at is not None:
+                elapsed = (datetime.now() - self._cached_at).total_seconds()
+                if elapsed < CACHE_SECONDS:
+                    session = self._cached_session
+            if session is None:
+                return None
+        else:
+            self._cached_session = session
+            self._cached_at = datetime.now()
 
         description = session.get("title", "") or "OpenCode 任务"
 

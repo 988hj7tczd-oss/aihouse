@@ -1,176 +1,138 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { t } from './lib/i18n.js';
   import AgentDetail from './AgentDetail.svelte';
-  import History from './History.svelte';
-  import Settings from './Settings.svelte';
-
-  let agents = [];
-  let summary = {};
-  let error = '';
-  let loading = true;
-  let activeTab = 'dashboard';
-  let selectedAgent = null;
 
   const API_BASE = 'http://127.0.0.1:9800';
 
-  let pollTimer;
-  let retryTimer;
+  let invoke;
+  try {
+    // Static import cannot be used in catch, so we try once eagerly
+    import('@tauri-apps/api/core').then(m => invoke = m.invoke).catch(() => {});
+  } catch {}
 
-  onMount(() => {
-    fetchAll();
-    pollTimer = setInterval(fetchAll, 3000);
-  });
+  let agents = [];
+  let loading = true;
+  let error = '';
+  let selected = null;
 
-  onDestroy(() => {
-    if (pollTimer) clearInterval(pollTimer);
-    if (retryTimer) clearInterval(retryTimer);
-  });
+  let poll, retry;
 
-  async function fetchAll() {
-    await fetchStatus();
+  onMount(() => { load(); poll = setInterval(load, 3000); });
+  onDestroy(() => { clearInterval(poll); if (retry) clearInterval(retry); });
+
+  async function api(path) {
+    if (invoke) {
+      try {
+        const r = await invoke('fetch_api', { path });
+        return typeof r === 'string' ? JSON.parse(r) : r;
+      } catch (_) {}
+    }
+    const res = await fetch(`${API_BASE}${path}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
   }
 
-  async function fetchStatus() {
+  async function load() {
     loading = agents.length === 0;
     try {
-      const res = await fetch(`${API_BASE}/api/status`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      agents = data.agents || [];
-      summary = data.summary || {};
-      error = '';
-      loading = false;
-      if (retryTimer) { clearInterval(retryTimer); retryTimer = null; }
+      const d = await api('/api/status');
+      agents = d.agents || [];
+      error = ''; loading = false;
+      if (retry) { clearInterval(retry); retry = null; }
+      if (!selected && agents.length) selected = agents[0].type;
     } catch (e) {
-      loading = false;
-      error = `${$t('connection_failed')}: ${e.message}`;
-      if (!retryTimer) retryTimer = setInterval(fetchStatus, 10000);
+      loading = false; error = e.message;
+      if (!retry) retry = setInterval(load, 10000);
     }
   }
 
-  function selectAgent(agent) {
-    selectedAgent = agent;
-    activeTab = 'detail';
+  function dot(a) {
+    if (a === 'active' || a === 'busy') return 'y';
+    if (a === 'idle') return 'g';
+    if (a === 'not_running') return 'r';
+    return 'x';
   }
 
-  function goBack() { activeTab = 'dashboard'; }
-
-  function statusDot(activity) {
-    if (activity === 'active' || activity === 'busy') return 'yellow';
-    if (activity === 'idle') return 'green';
-    if (activity === 'not_running') return 'red';
-    return 'gray';
+  function label(a) {
+    const m = { active: '运行中', idle: '空闲', busy: '忙碌', error: '异常', stuck: '卡住', not_running: '未运行' };
+    return m[a] || a;
   }
 
-  function statusLabel(activity) {
-    const map = { active: $t('running_label'), idle: $t('idle_label'), busy: $t('busy_label'), error: $t('error_label'), stuck: $t('stuck_label'), not_running: $t('not_running_label') };
-    return map[activity] || activity;
-  }
-
-  function formatTime(iso) {
-    if (!iso) return '';
-    const d = new Date(iso);
-    return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-  }
-
-  function overallColor() {
-    const c = summary.color;
-    return c === 'red' ? 'var(--red)' : c === 'yellow' ? 'var(--yellow)' : c === 'blue' ? 'var(--blue)' : 'var(--green)';
-  }
+  $: sel = agents.find(a => a.type === selected) || agents[0] || null;
+  $: ac = agents.filter(a => a.activity === 'active' || a.activity === 'busy').length;
+  $: ic = agents.filter(a => a.activity === 'idle').length;
+  $: oc = agents.filter(a => a.activity === 'not_running').length;
 </script>
 
-<main>
-  {#if activeTab === 'dashboard'}
-    <!-- 状态栏 -->
-    <div class="status-bar" style="border-left-color: {overallColor()}">
-      <span class="status-title">AIHouse</span>
-      <span class="status-count">{agents.length} {$t('agent')}</span>
+<div class="app">
+  <aside>
+    <div class="head">
+      <div class="title">AIHouse</div>
+      <div class="ver">v0.1.0</div>
     </div>
 
-    <!-- 错误条 -->
-    {#if error}
-      <div class="error-banner"><span>⚠️ {error}</span><button on:click={fetchStatus}>{$t('retry')}</button></div>
-    {/if}
-
-    <!-- Agent 卡片列表 -->
-    <div class="agent-list">
-      {#if loading && agents.length === 0}
-        <div class="loading">{$t('loading')}</div>
-      {:else if agents.length === 0}
-        <div class="empty-message">{$t('no_agent_data')}</div>
+    <div class="list">
+      {#if loading && !agents.length}
+        <div class="empty">加载中...</div>
+      {:else if !agents.length}
+        <div class="empty">{error || '无 Agent'}</div>
       {:else}
-        {#each agents as agent}
-          <div class="agent-card" on:click={() => selectAgent(agent)}>
-            <div class="dot-row">
-              <span class="dot dot-{statusDot(agent.activity)}" class:dot-blink={agent.activity === 'active' || agent.activity === 'busy'}></span>
-              <span class="agent-name">{agent.name}</span>
-              <span class="agent-status">{statusLabel(agent.activity)}</span>
+        {#each agents as a}
+          <div class="item" class:on={selected === a.type} on:click={() => selected = a.type}>
+            <span class="pt pt-{dot(a.activity)}" class:blink={a.activity === 'active' || a.activity === 'busy'}></span>
+            <div class="info">
+              <div class="nm">{a.name}</div>
+              <div class="st">{label(a.activity)}</div>
             </div>
-            {#if agent.current_task}
-              <div class="task-row">{agent.current_task.description}</div>
+            {#if a.current_task}
+              <div class="pre">{a.current_task.description.slice(0, 16)}</div>
             {/if}
           </div>
         {/each}
       {/if}
     </div>
 
-  {:else if activeTab === 'detail'}
-    <AgentDetail agent={selectedAgent} onback={goBack} />
-  {:else if activeTab === 'history'}
-    <History onback={goBack} />
-  {:else if activeTab === 'settings'}
-    <Settings onback={goBack} />
-  {/if}
-</main>
+    <div class="foot">
+      <span class="c-green">● {ac}</span>
+      <span class="c-dim">● {ic}</span>
+      <span class="c-red">● {oc}</span>
+    </div>
+  </aside>
 
-<nav class="tab-bar" data-tauri-drag-region>
-  <button class="tab" class:active={activeTab === 'dashboard'} on:click={() => activeTab = 'dashboard'}>{$t('dashboard')}</button>
-  <button class="tab" class:active={activeTab === 'history'} on:click={() => activeTab = 'history'}>{$t('history')}</button>
-  <button class="tab" class:active={activeTab === 'settings'} on:click={() => activeTab = 'settings'}>{$t('settings')}</button>
-</nav>
+  <main>
+    {#if error}
+      <div class="err">⚠️ {error} <button on:click={load}>重试</button></div>
+    {/if}
+    {#if sel}
+      <AgentDetail agent={sel} api={api} />
+    {:else if !loading}
+      <div class="empty-detail">选择左侧 Agent 查看详情</div>
+    {/if}
+  </main>
+</div>
 
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-
-  main { min-height: calc(100vh - 36px); background: var(--bg); color: var(--text); font-size: 13px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
-
-  .tab-bar { display: flex; background: var(--card-bg); border-top: 1px solid var(--border); height: 36px; align-items: center; padding: 0 8px; gap: 4px; }
-  .tab { background: none; border: none; color: var(--text-dim); padding: 6px 14px; font-size: 12px; cursor: pointer; border-radius: 4px; }
-  .tab.active { color: var(--text); background: var(--bg); }
-  .tab:hover { color: var(--text); }
-
-  .status-bar { display: flex; align-items: center; gap: 8px; background: var(--card-bg); border-radius: 8px; padding: 8px 12px; border-left: 3px solid var(--green); }
-  .status-title { font-weight: 700; font-size: 14px; }
-  .status-count { font-size: 12px; color: var(--text-dim); }
-
-  .error-banner { background: rgba(239,68,68,0.15); border: 1px solid var(--red); border-radius: 6px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
-  .error-banner button { background: var(--red); color: white; border: none; border-radius: 3px; padding: 2px 8px; cursor: pointer; font-size: 11px; }
-
-  .agent-list { display: flex; flex-direction: column; gap: 6px; flex: 1; overflow-y: auto; }
-  .agent-card { background: var(--card-bg); border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: background 0.15s; }
-  .agent-card:hover { background: color-mix(in srgb, var(--card-bg) 90%, var(--text)); }
-
-  .dot-row { display: flex; align-items: center; gap: 8px; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .dot-green { background: var(--green); }
-  .dot-yellow { background: var(--yellow); }
-  .dot-red { background: var(--red); }
-  .dot-gray { background: var(--gray); }
-
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-  .dot-blink { animation: blink 1.2s ease-in-out infinite; }
-
-  .agent-name { font-weight: 600; font-size: 14px; flex: 1; }
-  .agent-status { font-size: 12px; color: var(--text-dim); }
-
-  .task-row { font-size: 12px; color: var(--text-dim); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 18px; }
-
-  .loading { text-align: center; padding: 40px 0; color: var(--text-dim); }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading::before { content: ''; display: block; width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 8px; }
-  .empty-message { color: var(--text-dim); text-align: center; padding: 20px 0; }
+  .app { display:flex; height:100vh; }
+  aside { width:260px; display:flex; flex-direction:column; border-right:1px solid var(--border); padding:12px; gap:8px; }
+  main { flex:1; padding:16px 20px; overflow-y:auto; }
+  .head { display:flex; align-items:baseline; gap:8px; padding:0 4px 8px; border-bottom:1px solid var(--border); }
+  .title { font-size:18px; font-weight:700; }
+  .ver { font-size:11px; color:var(--muted); }
+  .list { flex:1; display:flex; flex-direction:column; gap:4px; overflow-y:auto; }
+  .item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:6px; cursor:pointer; transition:background 0.1s; }
+  .item:hover { background:var(--hover); }
+  .item.on { background:var(--selected); }
+  .pt { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .pt-g { background:var(--green); } .pt-y { background:var(--yellow); } .pt-r { background:var(--red); } .pt-x { background:var(--muted); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
+  .blink { animation:blink 1.2s ease-in-out infinite; }
+  .info { flex:1; min-width:0; }
+  .nm { font-size:14px; font-weight:600; } .st { font-size:11px; color:var(--dim); }
+  .pre { font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80px; }
+  .foot { display:flex; gap:14px; font-size:12px; padding:8px 4px 0; border-top:1px solid var(--border); }
+  .c-green { color:var(--green); } .c-dim { color:var(--dim); } .c-red { color:var(--red); }
+  .empty { padding:30px; text-align:center; color:var(--muted); font-size:13px; }
+  .err { background:rgba(248,81,73,0.1); border:1px solid rgba(248,81,73,0.25); border-radius:8px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; font-size:13px; margin-bottom:10px; }
+  .err button { background:var(--card); border:1px solid var(--border); color:var(--text); border-radius:4px; padding:2px 10px; cursor:pointer; font-size:12px; }
+  .empty-detail { padding:60px; text-align:center; color:var(--muted); font-size:14px; }
 </style>

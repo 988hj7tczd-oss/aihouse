@@ -1,3 +1,4 @@
+import os
 import platform
 import shutil
 from datetime import datetime
@@ -11,7 +12,12 @@ from aihouse.core.models import AgentActivity, AgentStatus, AgentTask, TaskStatu
 
 IS_WINDOWS = platform.system() == "Windows"
 
-CLAUDE_LOG_DIR = Path.home() / ".claude" / "logs"
+if IS_WINDOWS:
+    CLAUDE_DATA_DIR = Path(os.environ.get("APPDATA", "")) / "Claude"
+else:
+    CLAUDE_DATA_DIR = Path.home() / ".claude"
+
+CLAUDE_LOG_DIR = CLAUDE_DATA_DIR / "logs"
 
 
 class ClaudeCodeAdapter(AgentAdapter):
@@ -26,21 +32,19 @@ class ClaudeCodeAdapter(AgentAdapter):
     def detect(self) -> bool:
         if shutil.which("claude") is not None:
             return True
-        if Path.home().joinpath(".claude").is_dir():
+        if CLAUDE_DATA_DIR.is_dir():
             return True
-        return bool(self._find_processes())
+        return False
 
     def _find_processes(self) -> List[Dict[str, Any]]:
         results: List[Dict[str, Any]] = []
-        keywords = [self._process_name.lower()]
-        if IS_WINDOWS:
-            keywords.append(f"{self._process_name.lower()}.exe")
+        keyword = self._process_name.lower()
         for proc in psutil.process_iter(["pid", "name", "cmdline", "create_time"]):
             try:
                 info = proc.info
                 name = (info.get("name") or "").lower()
                 cmdline = " ".join(info.get("cmdline") or []).lower()
-                if any(kw in name or kw in cmdline for kw in keywords):
+                if keyword in name or keyword in cmdline:
                     results.append({
                         "pid": info["pid"],
                         "create_time": info.get("create_time"),
@@ -81,7 +85,7 @@ class ClaudeCodeAdapter(AgentAdapter):
                 last_seen = log_mtime
 
         current_task = self.get_current_task()
-        if current_task is not None:
+        if current_task is not None and current_task.status == TaskStatus.RUNNING:
             activity = AgentActivity.ACTIVE
         elif procs:
             activity = AgentActivity.IDLE

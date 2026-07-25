@@ -1,4 +1,5 @@
 import os
+import platform
 import shutil
 from pathlib import Path
 from typing import Any, Dict, List
@@ -28,9 +29,9 @@ AGENT_TYPE_MAP: Dict[str, str] = {
 KNOWN_AGENTS: List[Dict[str, Any]] = [
     {"name": "Hermes", "keywords": ["hermes"], "dirs": ["~/.hermes"], "category": "编码"},
     {"name": "Claude Code", "keywords": ["claude"], "dirs": ["~/.claude"], "category": "编码"},
-    {"name": "Cursor", "keywords": ["cursor"], "dirs": ["~/.cursor", "/Applications/Cursor.app"], "category": "编码"},
+    {"name": "Cursor", "keywords": ["cursor"], "dirs": ["/Applications/Cursor.app", "%LOCALAPPDATA%\\Programs\\Cursor\\Cursor.exe"], "category": "编码"},
     {"name": "Codex CLI", "keywords": ["codex"], "dirs": ["~/.codex"], "category": "编码"},
-    {"name": "OpenCode", "keywords": ["opencode", "opc"], "dirs": ["~/.local/share/opencode"], "category": "编码"},
+    {"name": "OpenCode", "keywords": ["opencode", "opc"], "dirs": ["~/.local/share/opencode", "%APPDATA%\\opencode"], "category": "编码"},
     {"name": "Pi", "keywords": ["pi"], "dirs": [], "category": "通用"},
     {"name": "OpenClaw", "keywords": ["openclaw"], "dirs": [], "category": "编码"},
     {"name": "Kilo Code", "keywords": ["kilo"], "dirs": ["~/.vscode/extensions"], "category": "编码"},
@@ -38,9 +39,14 @@ KNOWN_AGENTS: List[Dict[str, Any]] = [
 ]
 
 
+def _expand_path(d: str) -> Path:
+    p = os.path.expandvars(d)
+    return Path(p).expanduser().resolve()
+
+
 def _check_directory(dirs: List[str]) -> bool:
     for d in dirs:
-        p = Path(d).expanduser().resolve()
+        p = _expand_path(d)
         if p.exists():
             return True
     return False
